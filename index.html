@@ -255,7 +255,7 @@
 
             <div class="d-grid gap-2 d-sm-flex mt-3">
               <button class="btn btn-outline-secondary" id="markUsed">✅ Marquer aujourd’hui comme utilisé</button>
-              <button class="btn btn-success" id="whatsapp">🟢 Envoyer sur WhatsApp</button>
+              <button class="btn btn-success" id="copyMenu">📋 Copier le menu</button>
             </div>
 
             
@@ -855,7 +855,7 @@ function updateStatus(msg){
 
     $("print").addEventListener("click", () => window.print());
 
-    $("whatsapp").addEventListener("click", () => {
+    $("copyMenu").addEventListener("click", async () => {
       const gen = window.__lastGen;
       const d = load();
       if (!gen || !gen.date) { alert("Génerez d’abord des suggestions."); return; }
@@ -881,8 +881,13 @@ function updateStatus(msg){
 
 Lien: ${location.origin}${location.pathname}`;
 
-      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-      window.open(url, "_blank", "noopener,noreferrer");
+      try {
+        await navigator.clipboard.writeText(msg);
+        updateStatus("Menu copié ✅ (collez-le dans WhatsApp)");
+      } catch (e) {
+        // Fallback that always works: user can copy from prompt
+        prompt("Copiez ce message (puis collez-le dans WhatsApp) :", msg);
+      }
     });
 
     // Profile management

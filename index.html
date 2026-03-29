@@ -230,6 +230,7 @@
 
             <div class="d-grid gap-2 d-sm-flex mt-3">
               <button class="btn btn-outline-secondary" id="markUsed">✅ Marquer aujourd’hui comme utilisé</button>
+              <button class="btn btn-success" id="whatsapp">🟢 Envoyer sur WhatsApp</button>
             </div>
 
             <div class="small mono subtle mt-3" id="foot"></div>
@@ -675,6 +676,36 @@
     });
 
     $("print").addEventListener("click", () => window.print());
+
+    $("whatsapp").addEventListener("click", () => {
+      const gen = window.__lastGen;
+      const d = load();
+      if (!gen || !gen.date) { alert("Génerez d’abord des suggestions."); return; }
+
+      const rules = [d.sensory, d.prep].filter(Boolean).join(" · ");
+
+      function lineFor(opt){
+        const parts = [opt.main, opt.carb, opt.side, opt.dessert].filter(Boolean);
+        let s = parts.join(" + ");
+        if (opt.note) s += ` (${opt.note})`;
+        return s;
+      }
+
+      const lines = gen.options.map((opt, i) => `${i+1}) ${lineFor(opt)}`);
+      let msg = `🍽️ Menu du jour (${gen.date})
+
+` + lines.join("
+");
+      if (rules) msg += `
+
+⚠️ Règles: ${rules}`;
+      msg += `
+
+Lien: ${location.origin}${location.pathname}`;
+
+      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    });
 
     // Init
     uiFromData(load());

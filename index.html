@@ -107,6 +107,19 @@
           <div class="card-body">
             <h2 class="h6 mb-3">1) Profil 🧾</h2>
 
+            <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-2">
+              <div class="flex-grow-1">
+                <label class="form-label mb-1" for="profileSelect">👤 Profil actif</label>
+                <select class="form-select" id="profileSelect"></select>
+              </div>
+              <div class="d-grid gap-2 d-sm-flex">
+                <button class="btn btn-outline-primary" id="profileNew">➕ Nouveau</button>
+                <button class="btn btn-outline-secondary" id="profileRename">✏️ Renommer</button>
+                <button class="btn btn-outline-danger" id="profileDelete">🗑️ Supprimer</button>
+              </div>
+            </div>
+
+
             <div class="row g-2">
               <div class="col-12 col-md-6">
                 <label class="form-label" for="tz">🕒 Fuseau horaire</label>
@@ -221,7 +234,19 @@
           <div class="card-body">
             <h2 class="h6 mb-3">3) Suggestions ✨</h2>
 
-            <div id="today" class="mb-3"></div>
+            
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+              <div class="small subtle">Choix du jour :</div>
+              <div class="btn-group" role="group" aria-label="Choix du jour">
+                <input type="radio" class="btn-check" name="choice" id="choice1" autocomplete="off" checked>
+                <label class="btn btn-outline-secondary btn-sm" for="choice1">1</label>
+                <input type="radio" class="btn-check" name="choice" id="choice2" autocomplete="off">
+                <label class="btn btn-outline-secondary btn-sm" for="choice2">2</label>
+                <input type="radio" class="btn-check" name="choice" id="choice3" autocomplete="off">
+                <label class="btn btn-outline-secondary btn-sm" for="choice3">3</label>
+              </div>
+            </div>
+<div id="today" class="mb-3"></div>
 
             <div class="d-flex align-items-center justify-content-between">
               <h3 class="h6 mb-0">Prochains 7 jours <span class="subtle">(rotation du principal)</span></h3>
@@ -233,7 +258,26 @@
               <button class="btn btn-success" id="whatsapp">🟢 Envoyer sur WhatsApp</button>
             </div>
 
-            <div class="small mono subtle mt-3" id="foot"></div>
+            
+            <hr class="my-3" />
+
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+              <h3 class="h6 mb-0">Historique 🗓️</h3>
+              <button class="btn btn-outline-secondary btn-sm" id="historyClear">🧹 Effacer</button>
+            </div>
+            <div id="history" class="mt-2"></div>
+
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+              <h3 class="h6 mb-0">Favoris ⭐</h3>
+              <button class="btn btn-outline-secondary btn-sm" id="favsClear">🧹 Effacer</button>
+            </div>
+            <div class="small subtle">Ajoute une option du jour aux favoris avec le bouton ci-dessous.</div>
+            <div class="d-grid gap-2 d-sm-flex mt-2">
+              <button class="btn btn-outline-warning" id="favAdd">⭐ Ajouter l'option choisie</button>
+            </div>
+            <div id="favs" class="mt-2"></div>
+
+<div class="small mono subtle mt-3" id="foot"></div>
           </div>
         </div>
 
@@ -249,7 +293,58 @@
     const $ = (id) => document.getElementById(id);
 
     const APP_KEY = "lena_meal_planner_v1";
+    const PROFILE_INDEX_KEY = APP_KEY + ':profiles';
+    const ACTIVE_PROFILE_KEY = APP_KEY + ':activeProfile';
+
     const THEME_KEY = "lena_meal_planner_theme";
+
+    function uid(){
+      return Math.random().toString(36).slice(2,10);
+    }
+
+    function keyForProfile(id){
+      return `${APP_KEY}:profile:${id}`;
+    }
+
+    function loadProfilesIndex(){
+      try { return JSON.parse(localStorage.getItem(PROFILE_INDEX_KEY) || "null"); }
+      catch { return null; }
+    }
+
+    function saveProfilesIndex(idx){
+      localStorage.setItem(PROFILE_INDEX_KEY, JSON.stringify(idx));
+    }
+
+    function ensureProfiles(){
+      // migrate single legacy key (APP_KEY) into a default profile once
+      const legacyRaw = localStorage.getItem(APP_KEY);
+      let idx = loadProfilesIndex();
+
+      if (!idx || typeof idx !== 'object' || !Array.isArray(idx.profiles) || !idx.profiles.length) {
+        const id = 'p_' + uid();
+        idx = { activeId: id, profiles: [{ id, name: 'Profil 1' }] };
+        saveProfilesIndex(idx);
+      }
+
+      if (legacyRaw && !localStorage.getItem(keyForProfile(idx.profiles[0].id))) {
+        // move legacy data into first profile
+        localStorage.setItem(keyForProfile(idx.profiles[0].id), legacyRaw);
+        localStorage.removeItem(APP_KEY);
+      }
+
+      // set active id from explicit key if present
+      const active = localStorage.getItem(ACTIVE_PROFILE_KEY);
+      if (active && idx.profiles.some(p => p.id === active)) {
+        idx.activeId = active;
+      }
+
+      // ensure active exists
+      if (!idx.profiles.some(p => p.id === idx.activeId)) {
+        idx.activeId = idx.profiles[0].id;
+      }
+
+      return idx;
+
 
     function lines(v){
       return (v || "")
@@ -285,13 +380,38 @@
       return h >>> 0;
     }
 
+    let currentProfileId = null;
+
+    function setCurrentProfile(id){
+      currentProfileId = id;
+      localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+    }
+
     function load(){
-      try { return JSON.parse(localStorage.getItem(APP_KEY) || "{}"); }
+      const idx = ensureProfiles();
+      if (!currentProfileId) setCurrentProfile(idx.activeId);
+      try { return JSON.parse(localStorage.getItem(keyForProfile(currentProfileId)) || '{}'); }
       catch { return {}; }
     }
 
     function save(data){
-      localStorage.setItem(APP_KEY, JSON.stringify(data));
+      const idx = ensureProfiles();
+      if (!currentProfileId) setCurrentProfile(idx.activeId);
+      localStorage.setItem(keyForProfile(currentProfileId), JSON.stringify(data));
+    }
+
+
+    function renderProfileSelect(idx){
+      const sel = $("profileSelect");
+      if (!sel) return;
+      sel.innerHTML = "";
+      for (const p of idx.profiles) {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name || p.id;
+        if (p.id === currentProfileId) opt.selected = true;
+        sel.appendChild(opt);
+      }
     }
 
     function uiFromData(d){
@@ -308,6 +428,9 @@
       $("sides").value = (d.sides || []).join("\n");
       $("breakfast").value = (d.breakfast || []).join("\n");
       $("desserts").value = (d.desserts || []).join("\n");
+
+      renderHistory(d);
+      renderFavs(d);
     }
 
     function dataFromUi(){
@@ -381,8 +504,8 @@
       const sideC = pick(d.sides, rng) || sideA;
 
       const dessertA = safeDessert;
-      const dessertB = (d.desserts && d.desserts.length) ? (pick(d.desserts.slice(1).length ? d.desserts.slice(1) : d.desserts, rng) || dessertA) : "";
-      const dessertC = (d.desserts && d.desserts.length) ? (pick(d.desserts, rng) || dessertA) : "";
+      const dessertB = dessertA;
+      const dessertC = dessertA;
 
       const note = makeKeepSeparateNote(d.sensory);
 
@@ -502,7 +625,62 @@
       el.innerHTML = items.join("");
     }
 
-    function updateStatus(msg){
+    
+
+    function formatOption(opt){
+      if (!opt) return "";
+      const parts = [opt.main, opt.carb, opt.side, opt.dessert].filter(Boolean);
+      let s = parts.join(" + ");
+      if (opt.note) s += ` (${opt.note})`;
+      return s;
+    }
+
+    function renderHistory(data){
+      const el = $("history");
+      if (!el) return;
+      const items = (data.historyLog || []).slice(0, 10);
+      if (!items.length) {
+        el.innerHTML = '<div class="small subtle">Aucun historique pour l’instant.</div>';
+        return;
+      }
+      el.innerHTML = items.map(it => {
+        const text = formatOption(it.option);
+        return `
+          <div class="border border-secondary-subtle rounded-3 p-2 mb-2">
+            <div><b>${it.date}</b> <span class="subtle">(option ${it.choice})</span></div>
+            <div class="small">${escapeHtml(text)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderFavs(data){
+      const el = $("favs");
+      if (!el) return;
+      const items = (data.favs || []).slice(0, 10);
+      if (!items.length) {
+        el.innerHTML = '<div class="small subtle">Aucun favori pour l’instant.</div>';
+        return;
+      }
+      el.innerHTML = items.map((t, idx) => `
+        <div class="border border-secondary-subtle rounded-3 p-2 mb-2 d-flex align-items-start justify-content-between gap-2">
+          <div class="small">${escapeHtml(t)}</div>
+          <button class="btn btn-outline-danger btn-sm" data-fav-del="${idx}">✖</button>
+        </div>
+      `).join("");
+
+      el.querySelectorAll('[data-fav-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const data = load();
+          const i = parseInt(btn.getAttribute('data-fav-del'), 10);
+          data.favs = (data.favs || []).filter((_, j) => j !== i);
+          save(data);
+          renderFavs(data);
+        });
+      });
+    }
+
+function updateStatus(msg){
       $("status").textContent = msg;
     }
 
@@ -707,7 +885,100 @@ Lien: ${location.origin}${location.pathname}`;
       window.open(url, "_blank", "noopener,noreferrer");
     });
 
-    // Init
+    // Profile management
+    const idx0 = ensureProfiles();
+    setCurrentProfile(idx0.activeId);
+    renderProfileSelect(idx0);
+
+    $("profileSelect")?.addEventListener("change", (e) => {
+      const idx = ensureProfiles();
+      const id = e.target.value;
+      const p = idx.profiles.find(x => x.id === id);
+      if (!p) return;
+      idx.activeId = id;
+      saveProfilesIndex(idx);
+      setCurrentProfile(id);
+      uiFromData(load());
+      updateStatus("Profil changé.");
+    });
+
+    $("profileNew")?.addEventListener("click", () => {
+      const idx = ensureProfiles();
+      const name = prompt("Nom du nouveau profil :", `Profil ${idx.profiles.length + 1}`);
+      if (!name) return;
+      const id = 'p_' + uid();
+      idx.profiles = idx.profiles.concat([{ id, name }]);
+      idx.activeId = id;
+      saveProfilesIndex(idx);
+      setCurrentProfile(id);
+      save({});
+      uiFromData(load());
+      renderProfileSelect(idx);
+      updateStatus("Nouveau profil créé.");
+    });
+
+    $("profileRename")?.addEventListener("click", () => {
+      const idx = ensureProfiles();
+      const p = idx.profiles.find(x => x.id === idx.activeId);
+      if (!p) return;
+      const name = prompt("Nouveau nom :", p.name || "Profil");
+      if (!name) return;
+      p.name = name;
+      saveProfilesIndex(idx);
+      renderProfileSelect(idx);
+      updateStatus("Profil renommé.");
+    });
+
+    $("profileDelete")?.addEventListener("click", () => {
+      const idx = ensureProfiles();
+      if (idx.profiles.length <= 1) { alert("Impossible : il faut au moins un profil."); return; }
+      const p = idx.profiles.find(x => x.id === idx.activeId);
+      const ok = confirm(`Supprimer le profil "${p?.name || idx.activeId}" ?`);
+      if (!ok) return;
+      localStorage.removeItem(keyForProfile(idx.activeId));
+      idx.profiles = idx.profiles.filter(x => x.id !== idx.activeId);
+      idx.activeId = idx.profiles[0].id;
+      saveProfilesIndex(idx);
+      setCurrentProfile(idx.activeId);
+      uiFromData(load());
+      renderProfileSelect(idx);
+      updateStatus("Profil supprimé.");
+    });
+
+    // History/Favs actions
+    $("historyClear")?.addEventListener("click", () => {
+      const d = load();
+      if (!confirm("Effacer l’historique de ce profil ?")) return;
+      d.historyLog = [];
+      save(d);
+      renderHistory(d);
+    });
+
+    $("favsClear")?.addEventListener("click", () => {
+      const d = load();
+      if (!confirm("Effacer les favoris de ce profil ?")) return;
+      d.favs = [];
+      save(d);
+      renderFavs(d);
+    });
+
+    $("favAdd")?.addEventListener("click", () => {
+      const gen = window.__lastGen;
+      if (!gen || !gen.date) { alert("Génerez d’abord des suggestions."); return; }
+      const choice = $("choice2")?.checked ? 2 : ($("choice3")?.checked ? 3 : 1);
+      const opt = (gen.options && gen.options[choice-1]) ? gen.options[choice-1] : null;
+      const text = formatOption(opt);
+      if (!text) return;
+      const d = load();
+      d.favs = d.favs || [];
+      if (!d.favs.includes(text)) d.favs.unshift(text);
+      d.favs = d.favs.slice(0, 50);
+      save(d);
+      renderFavs(d);
+      updateStatus("Ajouté aux favoris.");
+    });
+
+// Init
     uiFromData(load());
     if (!load().sendTime) $("sendTime").value = "18:00";
     updateStatus("Prêt.");

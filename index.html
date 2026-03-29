@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="fr" data-bs-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🍽️ Planificateur de repas (variété douce)</title>
+
+  <!-- Bootstrap 5.3 (theme-aware, modern defaults) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+  <style>
+    body { background: var(--bs-body-bg); }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 1020;
+      backdrop-filter: blur(10px);
+      background: color-mix(in srgb, var(--bs-body-bg) 85%, transparent);
+      border-bottom: 1px solid var(--bs-border-color);
+    }
+
+    /* Couleurs = sens */
+    .meaning-main   { --sw: var(--bs-primary); }
+    .meaning-carb   { --sw: var(--bs-info); }
+    .meaning-side   { --sw: var(--bs-success); }
+    .meaning-nogo   { --sw: var(--bs-danger); }
+    .meaning-rules  { --sw: var(--bs-warning); }
+    .meaning-dessert{ --sw: var(--bs-purple); }
+
+    .badge-dessert{
+      background: color-mix(in srgb, var(--bs-purple) 14%, var(--bs-body-bg));
+      color: var(--bs-purple);
+      border: 1px solid color-mix(in srgb, var(--bs-purple) 38%, var(--bs-border-color));
+    }
+
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 999px;
+      background: var(--sw);
+      display: inline-block;
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--sw) 20%, transparent);
+    }
+
+    .subtle { color: var(--bs-secondary-color); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    /* Barres d’accent par section */
+    .accent-profile   { border-left: 4px solid var(--bs-primary); }
+    .accent-foods     { border-left: 4px solid var(--bs-success); }
+    .accent-output    { border-left: 4px solid var(--bs-info); }
+
+    .opt { border-style: dashed !important; }
+
+    /* Mobile-first tweaks */
+    @media (max-width: 576px) {
+      .app-header { position: static; } /* less UI chrome on small screens */
+      .btn, .form-select, .form-control { font-size: 16px; } /* avoid iOS zoom-on-focus */
+    }
+
+    @media print {
+      .app-header, .no-print { display: none !important; }
+      body { background: #fff !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header py-3">
+    <div class="container">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <div class="d-flex align-items-center gap-2">
+            <h1 class="h4 mb-0">🍽️ Planificateur de repas</h1>
+            <span class="badge text-bg-secondary">variété douce</span>
+          </div>
+          <div class="small subtle">Suggestions prévisibles pour préférences alimentaires restreintes. Tout fonctionne dans votre navigateur.</div>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" role="switch" id="themeToggle" />
+            <label class="form-check-label" for="themeToggle" id="themeLabel">Clair</label>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm no-print" id="print">🖨️ Imprimer</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container my-4">
+
+    <details class="alert alert-light border shadow-sm mb-4" role="note" open>
+      <summary class="fw-semibold" style="cursor:pointer">Légende des couleurs (sens)</summary>
+      <div class="small subtle mt-1">Les couleurs ont un sens fixe, pour rendre la lecture plus simple et rassurante.</div>
+      <div class="d-flex flex-wrap gap-3 small mt-2">
+        <div class="d-flex align-items-center gap-2 meaning-main"><span class="legend-dot"></span><span><b>Principal</b> (protéine / item clé)</span></div>
+        <div class="d-flex align-items-center gap-2 meaning-carb"><span class="legend-dot"></span><span><b>Féculent</b> (base)</span></div>
+        <div class="d-flex align-items-center gap-2 meaning-side"><span class="legend-dot"></span><span><b>Accompagnement</b> (légume/snack)</span></div>
+        <div class="d-flex align-items-center gap-2 meaning-dessert"><span class="legend-dot"></span><span><b>Dessert</b> (option)</span></div>
+        <div class="d-flex align-items-center gap-2 meaning-rules"><span class="legend-dot"></span><span><b>Règles</b> (sensoriel/prépa)</span></div>
+        <div class="d-flex align-items-center gap-2 meaning-nogo"><span class="legend-dot"></span><span><b>Interdit</b> (alerte)</span></div>
+      </div>
+    </details>
+
+    <div class="row g-3">
+      <div class="col-12 col-lg-4">
+        <div class="card shadow-sm accent-profile">
+          <div class="card-body">
+            <h2 class="h6 mb-3">1) Profil 🧾</h2>
+
+            <div class="row g-2">
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="tz">🕒 Fuseau horaire</label>
+                <input class="form-control" id="tz" placeholder="ex. Europe/Paris" />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="sendTime">⏰ Heure quotidienne</label>
+                <input class="form-control" id="sendTime" type="time" />
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label" for="nogos">⛔ Aliments interdits <span class="subtle">(virgules ou lignes)</span></label>
+              <textarea class="form-control" id="nogos" rows="4" placeholder="ex. oignons&#10;champignons&#10;épicé&#10;poisson"></textarea>
+            </div>
+
+            <div class="row g-2 mt-1">
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="repeatDays">🔁 Éviter de répéter le même principal</label>
+                <select class="form-select" id="repeatDays">
+                  <option value="2">2 jours</option>
+                  <option value="3" selected>3 jours</option>
+                  <option value="4">4 jours</option>
+                  <option value="5">5 jours</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label" for="novelty">✨ Budget de nouveauté</label>
+                <select class="form-select" id="novelty">
+                  <option value="0">0 (identique chaque jour)</option>
+                  <option value="1" selected>1 (1 petit changement/jour)</option>
+                  <option value="2">2 (un peu plus de variété)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label" for="sensory">🧠 Règles sensorielles</label>
+              <textarea class="form-control" id="sensory" rows="3" placeholder="ex. croquant ok; pas de sauce avec morceaux; les aliments ne doivent pas se toucher"></textarea>
+              <div class="form-text">Si vous mentionnez « toucher », j’ajoute un rappel « séparer les aliments ».</div>
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label" for="prep">🧑‍🍳 Contraintes de préparation</label>
+              <textarea class="form-control" id="prep" rows="3" placeholder="ex. micro-ondes + four; max 15 min"></textarea>
+            </div>
+
+            <div class="d-grid gap-2 d-sm-flex mt-3">
+              <button class="btn btn-primary" id="save">💾 Enregistrer</button>
+              <button class="btn btn-outline-secondary" id="reset">♻️ Réinitialiser</button>
+            </div>
+
+            <div class="small mono subtle mt-3" id="status"></div>
+          </div>
+        </div>
+
+        <div class="alert alert-info mt-3 mb-0 small" role="alert">
+          <div class="fw-semibold">Confidentialité</div>
+          Le profil est stocké sur <b>cet appareil</b> (localStorage). Rien n’est envoyé à un serveur.
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-4">
+        <div class="card shadow-sm accent-foods">
+          <div class="card-body">
+            <h2 class="h6 mb-1">2) Aliments autorisés 🍽️</h2>
+            <div class="small subtle mb-3">Mettez d’abord les items les plus sûrs/préférés.</div>
+
+            <div class="mb-3">
+              <label class="form-label" for="proteins">🍗 Principaux / protéines <span class="badge text-bg-primary-subtle text-primary border border-primary-subtle">Principal</span></label>
+              <textarea class="form-control" id="proteins" rows="4" placeholder="ex. nuggets&#10;oeufs&#10;jambon&#10;..."></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="carbs">🍚 Féculents <span class="badge text-bg-info-subtle text-info border border-info-subtle">Féculent</span></label>
+              <textarea class="form-control" id="carbs" rows="4" placeholder="ex. pâtes (nature)&#10;riz&#10;frites au four&#10;..."></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="sides">🥕 Accompagnements <span class="badge text-bg-success-subtle text-success border border-success-subtle">Accompagnement</span></label>
+              <textarea class="form-control" id="sides" rows="4" placeholder="ex. concombre&#10;carottes&#10;maïs&#10;..."></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="breakfast">🥣 Petit-déjeuner (safe)</label>
+              <textarea class="form-control" id="breakfast" rows="3" placeholder="ex. yaourt vanille&#10;banane&#10;céréales&#10;..."></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="desserts">🍰 Desserts (options)</label>
+              <textarea class="form-control" id="desserts" rows="3" placeholder="ex. yaourt&#10;compote&#10;fruit&#10;..."></textarea>
+              <div class="form-text">Optionnel. Laissez vide si pas de dessert.</div>
+            </div>
+
+            <div class="d-grid gap-2 d-sm-flex">
+              <button class="btn btn-primary" id="generate">🎲 Générer</button>
+              <button class="btn btn-outline-primary" id="import">📥 Importer JSON</button>
+              <button class="btn btn-outline-success" id="share">🔗 Partager</button>
+              <button class="btn btn-outline-secondary" id="export">📤 Exporter JSON</button>
+              <input class="d-none" type="file" id="importFile" accept="application/json,.json" />
+            </div>
+
+            <div class="small subtle mt-3">
+              Si une liste est vide, la catégorie peut être ignorée.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-4">
+        <div class="card shadow-sm accent-output">
+          <div class="card-body">
+            <h2 class="h6 mb-3">3) Suggestions ✨</h2>
+
+            <div id="today" class="mb-3"></div>
+
+            <div class="d-flex align-items-center justify-content-between">
+              <h3 class="h6 mb-0">Prochains 7 jours <span class="subtle">(rotation du principal)</span></h3>
+            </div>
+            <div id="week" class="mt-2"></div>
+
+            <div class="d-grid gap-2 d-sm-flex mt-3">
+              <button class="btn btn-outline-secondary" id="markUsed">✅ Marquer aujourd’hui comme utilisé</button>
+            </div>
+
+            <div class="small mono subtle mt-3" id="foot"></div>
+          </div>
+        </div>
+
+        <div class="small subtle mt-3">
+          Vous voulez une base pré-remplie ? Envoyez votre liste « safe / interdit ».
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function(){
+    const $ = (id) => document.getElementById(id);
+
+    const APP_KEY = "lena_meal_planner_v1";
+    const THEME_KEY = "lena_meal_planner_theme";
+
+    function lines(v){
+      return (v || "")
+        .split(/\n|,/g)
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
+
+    function nowISODate(){
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // PRNG déterministe (Mulberry32)
+    function mulberry32(a){
+      return function(){
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }
+    }
+
+    function hashStr(str){
+      let h = 2166136261;
+      for (let i = 0; i < str.length; i++){
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return h >>> 0;
+    }
+
+    function load(){
+      try { return JSON.parse(localStorage.getItem(APP_KEY) || "{}"); }
+      catch { return {}; }
+    }
+
+    function save(data){
+      localStorage.setItem(APP_KEY, JSON.stringify(data));
+    }
+
+    function uiFromData(d){
+      $("tz").value = d.tz || Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      $("sendTime").value = d.sendTime || "18:00";
+      $("nogos").value = (d.nogos || []).join("\n");
+      $("repeatDays").value = String(d.repeatDays ?? 3);
+      $("novelty").value = String(d.novelty ?? 1);
+      $("sensory").value = d.sensory || "";
+      $("prep").value = d.prep || "";
+
+      $("proteins").value = (d.proteins || []).join("\n");
+      $("carbs").value = (d.carbs || []).join("\n");
+      $("sides").value = (d.sides || []).join("\n");
+      $("breakfast").value = (d.breakfast || []).join("\n");
+      $("desserts").value = (d.desserts || []).join("\n");
+    }
+
+    function dataFromUi(){
+      return {
+        tz: $("tz").value.trim(),
+        sendTime: $("sendTime").value.trim(),
+        nogos: lines($("nogos").value),
+        repeatDays: parseInt($("repeatDays").value, 10),
+        novelty: parseInt($("novelty").value, 10),
+        sensory: $("sensory").value.trim(),
+        prep: $("prep").value.trim(),
+        proteins: lines($("proteins").value),
+        carbs: lines($("carbs").value),
+        sides: lines($("sides").value),
+        breakfast: lines($("breakfast").value),
+        desserts: lines($("desserts").value),
+        history: load().history || {}
+      };
+    }
+
+    function pick(list, rng){
+      if (!list.length) return "";
+      const i = Math.floor(rng() * list.length);
+      return list[i];
+    }
+
+    function pickNonRepeating(proteins, history, repeatDays, dateStr, rng){
+      if (!proteins.length) return "";
+      const recent = new Set();
+      const d0 = new Date(dateStr);
+      for (let i = 1; i <= repeatDays; i++){
+        const d = new Date(d0);
+        d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        if (history[key]) recent.add(history[key]);
+      }
+      const candidates = proteins.filter(p => !recent.has(p));
+      if (candidates.length) return pick(candidates, rng);
+      return pick(proteins, rng);
+    }
+
+    function makeKeepSeparateNote(sensory){
+      if (!sensory) return "";
+      return /(touch|toucher|se toucher|touchent)/i.test(sensory) ? "séparer les aliments" : "";
+    }
+
+    function generateForDate(d, dateStr){
+      const seed = hashStr(
+        dateStr + "|" + (d.tz || "") + "|" + (d.nogos || []).join("|") + "|" + (d.proteins || []).join("|")
+      );
+      const rng = mulberry32(seed);
+
+      const safeMain = d.proteins[0] || pick(d.proteins, rng);
+      const safeCarb = d.carbs[0] || pick(d.carbs, rng);
+      const safeSide = d.sides[0] || pick(d.sides, rng);
+
+      const safeDessert = (d.desserts && d.desserts.length) ? (d.desserts[0] || pick(d.desserts, rng)) : "";
+
+      const main = pickNonRepeating(d.proteins, d.history, d.repeatDays, dateStr, rng) || safeMain;
+      const novelty = d.novelty ?? 1;
+
+      const carbA = safeCarb;
+      const sideA = safeSide;
+
+      const carbB = novelty >= 1 ? (pick(d.carbs.slice(1).length ? d.carbs.slice(1) : d.carbs, rng) || carbA) : carbA;
+      const sideB = novelty >= 1 ? (pick(d.sides.slice(1).length ? d.sides.slice(1) : d.sides, rng) || sideA) : sideA;
+
+      const altMain = novelty >= 2 ? (pickNonRepeating(d.proteins, d.history, d.repeatDays, dateStr, rng) || main) : safeMain;
+
+      const carbC = pick(d.carbs, rng) || carbA;
+      const sideC = pick(d.sides, rng) || sideA;
+
+      const dessertA = safeDessert;
+      const dessertB = (d.desserts && d.desserts.length) ? (pick(d.desserts.slice(1).length ? d.desserts.slice(1) : d.desserts, rng) || dessertA) : "";
+      const dessertC = (d.desserts && d.desserts.length) ? (pick(d.desserts, rng) || dessertA) : "";
+
+      const note = makeKeepSeparateNote(d.sensory);
+
+      return {
+        date: dateStr,
+        chosenMain: main,
+        options: [
+          { kind: "safe",      title: "Par défaut (safe)", main: (safeMain || main), carb: carbA, side: sideA, dessert: dessertA, note },
+          { kind: "variation", title: "Petite variation",  main: main,              carb: carbB, side: sideB, dessert: dessertB, note },
+          { kind: "alt",       title: "Alternative",       main: (altMain || safeMain || main), carb: carbC, side: sideC, dessert: dessertC, note },
+        ]
+      };
+    }
+
+    function escapeHtml(s){
+      return (s || "").replace(/[&<>\"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c] || c));
+    }
+
+    function detectNoGoHits(textParts, nogos){
+      const hay = textParts.join(" ").toLowerCase();
+      const hits = [];
+      for (const ng of (nogos || [])){
+        const needle = String(ng).toLowerCase();
+        if (!needle) continue;
+        if (hay.includes(needle)) hits.push(ng);
+      }
+      return hits;
+    }
+
+    function kindBadge(kind){
+      if (kind === "safe") return `<span class="badge text-bg-success">Sûr</span>`;
+      if (kind === "variation") return `<span class="badge text-bg-info">Variation</span>`;
+      return `<span class="badge text-bg-primary">Alternative</span>`;
+    }
+
+    function pill(label, cls){
+      if (!label) return "";
+      return `<span class="badge rounded-pill ${cls}">${escapeHtml(label)}</span>`;
+    }
+
+    function renderOption(opt, idx, nogoHits){
+      const nogoBlock = (nogoHits && nogoHits.length)
+        ? `<div class="alert alert-danger py-2 px-3 mt-2 mb-0 small"><b>Alerte “interdit” :</b> ${escapeHtml(nogoHits.join(", "))}</div>`
+        : "";
+
+      const note = opt.note ? `<div class="small subtle mt-2"><span class="badge text-bg-warning">Règle</span> ${escapeHtml(opt.note)}</div>` : "";
+
+      return `
+        <div class="border border-secondary-subtle rounded-3 p-3 mb-2 opt">
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+            <div class="fw-semibold">Option ${idx + 1} : ${escapeHtml(opt.title)}</div>
+            <div>${kindBadge(opt.kind)}</div>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            ${pill(opt.main, 'text-bg-primary-subtle text-primary border border-primary-subtle')}
+            ${pill(opt.carb, 'text-bg-info-subtle text-info border border-info-subtle')}
+            ${pill(opt.side, 'text-bg-success-subtle text-success border border-success-subtle')}
+            ${pill(opt.dessert, 'badge-dessert')}
+          </div>
+          ${note}
+          ${nogoBlock}
+        </div>
+      `;
+    }
+
+    function renderToday(gen, d){
+      const el = $("today");
+      const date = gen.date;
+
+      const sendBadge = `
+        <span class="badge text-bg-light border">
+          ${escapeHtml(d.sendTime || "18:00")} (${escapeHtml(d.tz || "local")})
+        </span>
+      `;
+
+      const header = `
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+          <div class="fw-semibold">Aujourd’hui (${date})</div>
+          <div class="d-flex gap-2 align-items-center"><span class="subtle small">heure :</span> ${sendBadge}</div>
+        </div>
+      `;
+
+      const rules = [d.sensory, d.prep].filter(Boolean).join(" · ");
+      const rulesLine = rules
+        ? `<div class="small subtle mono mb-2"><span class="badge text-bg-warning">Règles</span> ${escapeHtml(rules)}</div>`
+        : "";
+
+      const opts = gen.options.map((opt, i) => {
+        const hits = detectNoGoHits([opt.main, opt.carb, opt.side, opt.dessert].filter(Boolean), d.nogos);
+        return renderOption(opt, i, hits);
+      }).join("");
+
+      el.innerHTML = header + rulesLine + opts;
+
+      $("foot").textContent = `Principal choisi (rotation) : ${gen.chosenMain || "—"} · Stocké localement dans votre navigateur.`;
+      window.__lastGen = gen;
+    }
+
+    function renderWeek(d){
+      const el = $("week");
+      const start = new Date();
+      const items = [];
+      for (let i = 0; i < 7; i++){
+        const dd = new Date(start);
+        dd.setDate(dd.getDate() + i);
+        const dateStr = dd.toISOString().slice(0, 10);
+        const g = generateForDate(d, dateStr);
+        items.push(`
+          <div class="border border-secondary-subtle rounded-3 p-2 mb-2">
+            <div class="small subtle">${dateStr}</div>
+            <div class="d-flex flex-wrap gap-2 mt-1">
+              ${pill(g.chosenMain || "(aucun principal listé)", 'text-bg-primary-subtle text-primary border border-primary-subtle')}
+            </div>
+          </div>
+        `);
+      }
+      el.innerHTML = items.join("");
+    }
+
+    function updateStatus(msg){
+      $("status").textContent = msg;
+    }
+
+    // Thème (Bootstrap data-bs-theme)
+    function applyTheme(theme){
+      document.documentElement.setAttribute("data-bs-theme", theme);
+      const isDark = theme === "dark";
+      $("themeToggle").checked = isDark;
+      $("themeLabel").textContent = isDark ? "Sombre" : "Clair";
+      localStorage.setItem(THEME_KEY, theme);
+    }
+
+    $("themeToggle").addEventListener("change", (e) => {
+      applyTheme(e.target.checked ? "dark" : "light");
+    });
+
+    // Boutons
+    $("save").addEventListener("click", () => {
+      const d = dataFromUi();
+      save(d);
+      updateStatus(`Enregistré à ${new Date().toLocaleString()}`);
+    });
+
+    $("reset").addEventListener("click", () => {
+      if (!confirm("Réinitialiser le profil + l’historique sur cet appareil ?")) return;
+      localStorage.removeItem(APP_KEY);
+      uiFromData(load());
+    maybeImportFromHash();
+      $("today").innerHTML = "";
+      $("week").innerHTML = "";
+      updateStatus("Réinitialisation terminée.");
+    });
+
+    $("generate").addEventListener("click", () => {
+      const d = dataFromUi();
+      save(d);
+      const dateStr = nowISODate();
+      const gen = generateForDate(d, dateStr);
+      renderToday(gen, d);
+      renderWeek(d);
+      updateStatus("Généré.");
+    });
+
+    $("markUsed").addEventListener("click", () => {
+      const d = load();
+      const gen = window.__lastGen;
+      if (!gen || !gen.date) { alert("Générez d’abord des suggestions."); return; }
+      d.history = d.history || {};
+      if (gen.chosenMain) d.history[gen.date] = gen.chosenMain;
+      save(d);
+      updateStatus(`Marqué comme utilisé : ${gen.chosenMain} (${gen.date})`);
+    });
+
+    
+
+    $("import").addEventListener("click", () => {
+      $("importFile").click();
+    });
+
+    $("importFile").addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const obj = JSON.parse(text);
+        if (!obj || typeof obj !== "object") throw new Error("invalid");
+        // Write the full exported object back to localStorage
+        localStorage.setItem(APP_KEY, JSON.stringify(obj));
+        uiFromData(obj);
+        $("today").innerHTML = "";
+        $("week").innerHTML = "";
+        updateStatus("Profil importé.");
+      } catch (err) {
+        console.error(err);
+        alert("Fichier JSON invalide. Essayez d’importer un fichier exporté par ce site.");
+      } finally {
+        // Allow importing the same file again
+        e.target.value = "";
+      }
+    });
+
+    
+
+    function b64urlEncode(str){
+      const b64 = btoa(unescape(encodeURIComponent(str)));
+      return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    }
+
+    function b64urlDecode(b64url){
+      let b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+      while (b64.length % 4) b64 += "=";
+      const str = decodeURIComponent(escape(atob(b64)));
+      return str;
+    }
+
+    function buildShareUrl(obj){
+      const payload = b64urlEncode(JSON.stringify(obj));
+      const url = `${location.origin}${location.pathname}#p=${payload}`;
+      return { url, payloadLen: payload.length };
+    }
+
+    async function copyToClipboard(text){
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    $("share").addEventListener("click", async () => {
+      const d = dataFromUi();
+      save(d);
+      const { url } = buildShareUrl(load());
+
+      // Warn if link is huge (messengers may break very long URLs)
+      if (url.length > 7000) {
+        alert("Le lien est très long (beaucoup de données). Astuce: utilisez plutôt Exporter/Importer JSON.");
+      }
+
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch (e) {
+        copied = false;
+      }
+
+      if (copied) {
+        updateStatus("Lien de partage copié ✅");
+      } else {
+        prompt("Copiez ce lien et envoyez-le :", url);
+      }
+    });
+
+    // If the page is opened with a share payload, offer to import it
+    function maybeImportFromHash(){
+      const h = location.hash || "";
+      
+      if (!h.startsWith("#p=")) return;
+      const payload = h.slice(3);
+      if (!payload) return;
+      try {
+        const jsonText = b64urlDecode(payload);
+        const obj = JSON.parse(jsonText);
+        if (!obj || typeof obj !== "object") throw new Error("invalid");
+        const ok = confirm("Importer le profil depuis le lien partagé ? (Cela remplacera ce qui est sauvegardé sur cet appareil.)");
+        if (!ok) return;
+        localStorage.setItem(APP_KEY, JSON.stringify(obj));
+        uiFromData(obj);
+        $("today").innerHTML = "";
+        $("week").innerHTML = "";
+        updateStatus("Profil importé depuis le lien.");
+        // Remove payload from URL (clean share token)
+        history.replaceState(null, "", location.pathname);
+      } catch (e) {
+        console.error(e);
+        alert("Lien de partage invalide.");
+      }
+    }
+
+    $("export").addEventListener("click", () => {
+      const d = dataFromUi();
+      save(d);
+      const blob = new Blob([JSON.stringify(load(), null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "profil-planificateur-repas.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    $("print").addEventListener("click", () => window.print());
+
+    // Init
+    uiFromData(load());
+    if (!load().sendTime) $("sendTime").value = "18:00";
+    updateStatus("Prêt.");
+
+    const savedTheme = localStorage.getItem(THEME_KEY) || "light";
+    applyTheme(savedTheme);
+  })();
+  </script>
+</body>
+</html>

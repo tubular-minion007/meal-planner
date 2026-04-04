@@ -1,0 +1,51 @@
+body { background: var(--bs-body-bg); }
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--bs-body-bg) 85%, transparent);
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.meaning-main   { --sw: var(--bs-primary); }
+.meaning-carb   { --sw: var(--bs-info); }
+.meaning-side   { --sw: var(--bs-success); }
+.meaning-nogo   { --sw: var(--bs-danger); }
+.meaning-rules  { --sw: var(--bs-warning); }
+.meaning-dessert{ --sw: var(--bs-purple); }
+
+.badge-dessert {
+  background: color-mix(in srgb, var(--bs-purple) 14%, var(--bs-body-bg));
+  color: var(--bs-purple);
+  border: 1px solid color-mix(in srgb, var(--bs-purple) 38%, var(--bs-border-color));
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--sw);
+  display: inline-block;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--sw) 20%, transparent);
+}
+
+.subtle { color: var(--bs-secondary-color); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+.accent-profile { border-left: 4px solid var(--bs-primary); }
+.accent-foods   { border-left: 4px solid var(--bs-success); }
+.accent-output  { border-left: 4px solid var(--bs-info); }
+
+.opt { border-style: dashed !important; }
+
+@media (max-width: 576px) {
+  .app-header { position: static; }
+  .btn, .form-select, .form-control { font-size: 16px; }
+}
+
+@media print {
+  .app-header, .no-print { display: none !important; }
+  body { background: #fff !important; }
+}

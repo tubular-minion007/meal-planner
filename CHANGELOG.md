@@ -9,6 +9,29 @@ This changelog reflects the **full build discussion** (decisions + changes) for 
 - Add a small in-app **“Quoi de neuf ?” / context reminder** box (optional, dismissible) to explain what changed after updates.
 - (Optional) Add a “Copy menu” message preview area (in addition to clipboard/prompt) for browsers with strict clipboard permissions.
 
+## 2026-04-04
+
+### Refactor
+- Split the app from a single giant `index.html` into:
+  - `index.html`
+  - `styles.css`
+  - `app.js`
+- Kept the app fully static and GitHub Pages-friendly (no build step required).
+
+### Storage + profile fixes
+- Introduced a cleaner storage namespace (`lena_meal_planner_v2`) while preserving migration from legacy `v1` keys.
+- Fixed profile import/share/reset flows so they operate on the **active profile** instead of writing back to outdated single-profile keys.
+- Normalized saved data into a more consistent schema with a version marker.
+
+### Reliability fixes
+- Fixed the mismatch where **history rendering used `historyLog`** but “mark used” only updated `history`.
+- “Mark used” now records both rotation history and visible history entries.
+- Switched recurring date calculations away from `toISOString()` day math to local date strings, avoiding timezone-related off-by-one surprises.
+
+### Maintainability
+- Centralized state normalization/helpers instead of scattering storage assumptions across the page.
+- Preserved the original product model (static, local-first, privacy-first) while making the codebase less brittle.
+
 ## 2026-03-30
 
 ### Reliability fix

@@ -67,8 +67,19 @@ Originally a WhatsApp “send” button existed. Because deep links / pop-up pol
 ## Notable implementation notes (high-level)
 
 - State is stored in `localStorage`.
+- Current storage namespace is `lena_meal_planner_v2` with migration from older `v1` keys.
 - Multi-profile storage is implemented by storing a **profiles index** plus per-profile keys.
 - Share link uses base64url JSON in the hash.
+
+## Code structure
+
+The app remains **fully static** (no build tooling required), but is now split into:
+
+- `index.html` — structure / markup
+- `styles.css` — custom styles
+- `app.js` — state, rendering, storage, actions
+
+This keeps GitHub Pages deployment simple while making maintenance much safer than a single large inline-script HTML file.
 
 ## How to update / publish
 

@@ -9,6 +9,7 @@
   const ACTIVE_PROFILE_KEY = `${APP_KEY}:activeProfile`;
   const THEME_KEY = 'lena_meal_planner_theme';
   const DATA_VERSION = 2;
+  const APP_VERSION = 'v2.2.0';
 
   let currentProfileId = null;
   let lastGenerated = null;
@@ -191,6 +192,11 @@
 
   function updateStatus(message) {
     $('status').textContent = message;
+  }
+
+  function updateVersionBadge() {
+    const el = $('versionBadge');
+    if (el) el.textContent = APP_VERSION;
   }
 
   function escapeHtml(value) {
@@ -519,7 +525,7 @@
   }
 
   function clearRenderedPlans() {
-    $('today').innerHTML = '';
+    $('today').innerHTML = '<div class="alert alert-light border small mb-0">Générez d’abord les suggestions du jour pour afficher les options et les liens recettes.</div>';
     $('week').innerHTML = '';
     $('foot').textContent = '';
     lastGenerated = null;
@@ -748,6 +754,7 @@
     setCurrentProfile(localStorage.getItem(ACTIVE_PROFILE_KEY) || idx.activeId);
     renderProfileSelect(idx);
     uiFromData(loadProfile());
+    updateVersionBadge();
     updateStatus('Prêt.');
     applyTheme(localStorage.getItem(THEME_KEY) || 'light');
     initEvents();

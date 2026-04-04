@@ -40,6 +40,10 @@ This changelog reflects the **full build discussion** (decisions + changes) for 
   - then Swiss / Peruvian inspiration
 - Implemented as external search links to keep the app static and low-maintenance.
 
+### Build visibility
+- Added a visible version badge in the header so new builds are easier to spot.
+- Added an explicit hint in the suggestions area explaining that recipe links appear after generating meal suggestions.
+
 ## 2026-03-30
 
 ### Reliability fix

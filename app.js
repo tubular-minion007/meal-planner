@@ -9,7 +9,15 @@
   const ACTIVE_PROFILE_KEY = `${APP_KEY}:activeProfile`;
   const THEME_KEY = 'lena_meal_planner_theme';
   const DATA_VERSION = 2;
-  const APP_VERSION = 'v2.2.0';
+  const APP_VERSION = 'v2.3.0';
+
+  const DEMO_FOODS = {
+    proteins: ['nuggets', 'oeufs', 'jambon', 'poulet pané'],
+    carbs: ['riz', 'pâtes nature', 'pommes de terre', 'frites au four'],
+    sides: ['carottes', 'maïs', 'concombre', 'petits pois'],
+    breakfast: ['yaourt vanille', 'banane', 'céréales simples'],
+    desserts: ['compote', 'yaourt', 'fruit doux']
+  };
 
   let currentProfileId = null;
   let lastGenerated = null;
@@ -457,6 +465,23 @@
     });
   }
 
+  function hasAnyFoodData(data) {
+    return ['proteins', 'carbs', 'sides', 'breakfast', 'desserts'].some(
+      (key) => Array.isArray(data[key]) && data[key].length > 0
+    );
+  }
+
+  function withDemoFoods(data) {
+    return normalizeData({
+      ...data,
+      proteins: data.proteins.length ? data.proteins : DEMO_FOODS.proteins,
+      carbs: data.carbs.length ? data.carbs : DEMO_FOODS.carbs,
+      sides: data.sides.length ? data.sides : DEMO_FOODS.sides,
+      breakfast: data.breakfast.length ? data.breakfast : DEMO_FOODS.breakfast,
+      desserts: data.desserts.length ? data.desserts : DEMO_FOODS.desserts
+    });
+  }
+
   function renderToday(gen, data) {
     const sendBadge = `<span class="badge text-bg-light border">${escapeHtml(data.sendTime || '18:00')} (${escapeHtml(data.tz || 'local')})</span>`;
     const rules = [data.sensory, data.prep].filter(Boolean).join(' · ');
@@ -556,12 +581,14 @@
   }
 
   function generateAndRender() {
-    const data = saveProfile(dataFromUi());
+    const savedData = saveProfile(dataFromUi());
+    const usingDemoFoods = !hasAnyFoodData(savedData);
+    const data = usingDemoFoods ? withDemoFoods(savedData) : savedData;
     const gen = generateForDate(data, localDateString());
     lastGenerated = gen;
     renderToday(gen, data);
     renderWeek(data);
-    updateStatus('Généré.');
+    updateStatus(usingDemoFoods ? 'Généré avec des exemples réalistes (mode démo).' : 'Généré.');
   }
 
   function initEvents() {

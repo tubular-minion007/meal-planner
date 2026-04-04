@@ -44,6 +44,10 @@ This changelog reflects the **full build discussion** (decisions + changes) for 
 - Added a visible version badge in the header so new builds are easier to spot.
 - Added an explicit hint in the suggestions area explaining that recipe links appear after generating meal suggestions.
 
+### First-run demo generation
+- When the food lists are empty, **Générer** now falls back to realistic demo foods instead of showing a dead/blank experience.
+- This makes first-time testing easier without forcing sample data into the saved profile.
+
 ## 2026-03-30
 
 ### Reliability fix

@@ -9,7 +9,7 @@
   const ACTIVE_PROFILE_KEY = `${APP_KEY}:activeProfile`;
   const THEME_KEY = 'lena_meal_planner_theme';
   const DATA_VERSION = 2;
-  const APP_VERSION = 'v2.3.0';
+  const APP_VERSION = 'v2.4.0';
 
   const DEMO_FOODS = {
     proteins: ['nuggets', 'oeufs', 'jambon', 'poulet pané'],
@@ -331,6 +331,10 @@
     ];
   }
 
+  function recipeTabId(idx, tabIdx) {
+    return `recipe-tab-${idx + 1}-${tabIdx + 1}`;
+  }
+
   function renderOption(option, idx, nogoHits) {
     const nogoBlock = nogoHits.length
       ? `<div class="alert alert-danger py-2 px-3 mt-2 mb-0 small"><b>Alerte “interdit” :</b> ${escapeHtml(nogoHits.join(', '))}</div>`
@@ -343,12 +347,31 @@
       ? `
         <div class="mt-3">
           <div class="small subtle mb-2">Idées recettes :</div>
-          <div class="d-flex flex-column gap-2">
-            ${links.map((link) => `
-              <a class="btn btn-sm btn-outline-secondary text-start" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
-                <div>${escapeHtml(link.label)}</div>
-                <div class="small subtle">${escapeHtml(link.hint)}</div>
-              </a>`).join('')}
+          <div class="recipe-tabs mb-2" role="tablist" aria-label="Recettes pour l'option ${idx + 1}">
+            ${links.map((link, linkIdx) => `
+              <button
+                type="button"
+                class="btn btn-sm ${linkIdx === 0 ? 'btn-secondary' : 'btn-outline-secondary'} recipe-tab-btn"
+                data-recipe-tab-btn="${idx + 1}"
+                data-tab-index="${linkIdx}"
+                aria-selected="${linkIdx === 0 ? 'true' : 'false'}"
+                aria-controls="${recipeTabId(idx, linkIdx)}"
+              >${escapeHtml(link.label)}</button>`).join('')}
+          </div>
+          <div class="recipe-panes d-flex flex-column gap-2">
+            ${links.map((link, linkIdx) => `
+              <div
+                id="${recipeTabId(idx, linkIdx)}"
+                class="recipe-pane"
+                data-recipe-pane="${idx + 1}"
+                data-tab-index="${linkIdx}"
+                ${linkIdx === 0 ? '' : 'hidden'}
+              >
+                <div class="small subtle mb-2">${escapeHtml(link.hint)}</div>
+                <a class="btn btn-sm btn-outline-secondary text-start w-100" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
+                  Ouvrir ${escapeHtml(link.label).toLowerCase()}
+                </a>
+              </div>`).join('')}
           </div>
         </div>`
       : '';
@@ -498,6 +521,20 @@
     $('foot').textContent = `Principal choisi (rotation) : ${gen.chosenMain || '—'} · Stocké localement dans votre navigateur.`;
   }
 
+  function activateRecipeTab(group, tabIndex) {
+    document.querySelectorAll(`[data-recipe-tab-btn="${group}"]`).forEach((btn) => {
+      const active = Number.parseInt(btn.dataset.tabIndex, 10) === tabIndex;
+      btn.classList.toggle('btn-secondary', active);
+      btn.classList.toggle('btn-outline-secondary', !active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+
+    document.querySelectorAll(`[data-recipe-pane="${group}"]`).forEach((pane) => {
+      const active = Number.parseInt(pane.dataset.tabIndex, 10) === tabIndex;
+      pane.hidden = !active;
+    });
+  }
+
   function renderWeek(data) {
     const start = new Date();
     const html = [];
@@ -592,6 +629,12 @@
   }
 
   function initEvents() {
+    $('today').addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-recipe-tab-btn]');
+      if (!btn) return;
+      activateRecipeTab(btn.dataset.recipeTabBtn, Number.parseInt(btn.dataset.tabIndex, 10));
+    });
+
     $('themeToggle').addEventListener('change', (event) => {
       applyTheme(event.target.checked ? 'dark' : 'light');
     });

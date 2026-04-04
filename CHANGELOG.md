@@ -48,6 +48,14 @@ This changelog reflects the **full build discussion** (decisions + changes) for 
 - When the food lists are empty, **Générer** now falls back to realistic demo foods instead of showing a dead/blank experience.
 - This makes first-time testing easier without forcing sample data into the saved profile.
 
+### Responsive recipe tabs
+- Replaced the flat recipe-link list with a small **responsive tab view**.
+- The three tabs are now:
+  - simple
+  - safe / gentle
+  - Swiss / Peruvian inspiration
+- On mobile, the tabs stack cleanly instead of cramming horizontally.
+
 ## 2026-03-30
 
 ### Reliability fix

@@ -40,9 +40,32 @@ body { background: var(--bs-body-bg); }
 
 .opt { border-style: dashed !important; }
 
+.recipe-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.recipe-tab-btn {
+  flex: 1 1 140px;
+}
+
+.recipe-pane[hidden] {
+  display: none !important;
+}
+
+.recipe-pane {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: color-mix(in srgb, var(--bs-body-bg) 92%, var(--bs-secondary-bg));
+}
+
 @media (max-width: 576px) {
   .app-header { position: static; }
   .btn, .form-select, .form-control { font-size: 16px; }
+  .recipe-tabs { flex-direction: column; }
+  .recipe-tab-btn { width: 100%; }
 }
 
 @media print {

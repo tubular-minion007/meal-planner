@@ -32,6 +32,14 @@ This changelog reflects the **full build discussion** (decisions + changes) for 
 - Centralized state normalization/helpers instead of scattering storage assumptions across the page.
 - Preserved the original product model (static, local-first, privacy-first) while making the codebase less brittle.
 
+### Recipe referrals
+- Added lightweight **recipe referral links** directly inside each generated option.
+- Priority order reflects user preference:
+  - simple / minimal-ingredient recipes first
+  - then a softer “safe food” search
+  - then Swiss / Peruvian inspiration
+- Implemented as external search links to keep the app static and low-maintenance.
+
 ## 2026-03-30
 
 ### Reliability fix

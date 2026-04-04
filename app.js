@@ -289,12 +289,54 @@
     return `<span class="badge rounded-pill ${cls}">${escapeHtml(label)}</span>`;
   }
 
+  function searchUrl(query) {
+    return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+  }
+
+  function recipeLinks(option) {
+    const terms = [option.main, option.carb, option.side].filter(Boolean);
+    const base = terms.join(' ');
+    if (!base) return [];
+
+    return [
+      {
+        label: 'Recette simple',
+        hint: 'safe / peu d’ingrédients',
+        url: searchUrl(`${base} recette simple peu ingrédients`)
+      },
+      {
+        label: 'Version douce',
+        hint: 'textures simples / ingrédients limités',
+        url: searchUrl(`${base} safe food simple recipe minimal ingredients`)
+      },
+      {
+        label: 'Inspiration suisse / péruvienne',
+        hint: 'pour varier sans compliquer',
+        url: searchUrl(`${base} recette suisse ou péruvienne simple`)
+      }
+    ];
+  }
+
   function renderOption(option, idx, nogoHits) {
     const nogoBlock = nogoHits.length
       ? `<div class="alert alert-danger py-2 px-3 mt-2 mb-0 small"><b>Alerte “interdit” :</b> ${escapeHtml(nogoHits.join(', '))}</div>`
       : '';
     const note = option.note
       ? `<div class="small subtle mt-2"><span class="badge text-bg-warning">Règle</span> ${escapeHtml(option.note)}</div>`
+      : '';
+    const links = recipeLinks(option);
+    const linksBlock = links.length
+      ? `
+        <div class="mt-3">
+          <div class="small subtle mb-2">Idées recettes :</div>
+          <div class="d-flex flex-column gap-2">
+            ${links.map((link) => `
+              <a class="btn btn-sm btn-outline-secondary text-start" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">
+                <div>${escapeHtml(link.label)}</div>
+                <div class="small subtle">${escapeHtml(link.hint)}</div>
+              </a>`).join('')}
+          </div>
+        </div>`
       : '';
 
     return `
@@ -310,6 +352,7 @@
           ${pill(option.dessert, 'badge-dessert')}
         </div>
         ${note}
+        ${linksBlock}
         ${nogoBlock}
       </div>`;
   }

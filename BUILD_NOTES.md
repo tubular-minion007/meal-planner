@@ -46,6 +46,15 @@ This repo contains a **single-page, static** meal-planning web app designed for 
   - On open, the app can prompt to import.
   - Note: longer link, and anyone with the link can read the shared data.
 
+## Recipe referrals
+
+- Each generated meal option can surface a few **recipe referral links**.
+- These are intentionally lightweight search links rather than an integrated recipe database.
+- Current priority:
+  1. simple / minimal-ingredient recipes
+  2. gentle / safe-food style recipes
+  3. Swiss or Peruvian inspiration
+
 ## History, favorites, and profiles
 
 - **History (Historique)**
